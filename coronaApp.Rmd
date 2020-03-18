@@ -1,0 +1,79 @@
+---
+title: "Mental Health and COVID-19 Trends from Online Newspaper Headlines"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    source_code: embed
+runtime: shiny 
+---
+
+This interactive web app shows the New York Times's coverage of COVID-19. Please note that this is based off headlines only, not the content of the articles. 
+
+```{r global, include=FALSE}
+library(flexdashboard)
+library(rvest)
+library(dplyr)
+library(tidyverse)
+library(stringr)
+library(DT)
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+### Choose the date of the New York Times's paper
+
+```{r, include = TRUE}
+selectInput("month", label = "Month",
+  choices = c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"))
+selectInput("day", label = "Day",
+  choices = c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10:13"))
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### COVID-19-related Articles on This Day
+
+```{r}
+renderDataTable ({ #Ashely choose how to show this data
+
+  url <- paste("https://www.nytimes.com/issue/todayspaper/2020/", input$month, "/", input$day, "/todays-new-york-times", sep='')
+  
+  nytimes <- read_html(url)
+  nyt_headlines <- nytimes %>%
+    html_nodes(".css-l2vidh.e4e4i5l1") %>%
+    html_text
+  nyt_subheadlines <- nytimes %>%
+    html_nodes(".css-195cszl.e1f68otr0") %>%
+    html_text()
+  nyt_headlines <- as.data.frame(nyt_headlines) 
+  nyt_subheadlines <- as.data.frame(nyt_subheadlines)
+  names(nyt_subheadlines)[names(nyt_subheadlines) == "nyt_subheadlines"] <- "nyt_headlines"
+  headlines <- rbind(nyt_headlines, nyt_subheadlines)
+  
+  corona <- grep("[cC]orona|[vV]irus|[pP]andemic|[lL]ockdown|[Oo]utbreak|[sS]hut", pattern = headlines$nyt_headlines, value=TRUE)
+  corona <- as.data.frame(corona)
+  names(corona)[names(corona) == "corona"] <- "headlines"
+  
+})
+```
+
+### Percentage of Articles Related to COVID-19
+
+```{r} 
+#maybe show the percent in a gauge or value box? Just have it print out, worst case.
+percentCorona <- round(as.numeric(nrow(corona))/as.numeric(nrow(headlines))*100, 2)
+percentCoronaOutput <- paste(percentCorona,"%", sep="")
+```
+
+### Emotions Related to COVID-19 Articles
+```{r} 
+#this can show different tables by these three categories or plots
+topics_anxiety <- grep("([aA]nxiety|[sS]tress)", corona$headlines, value=TRUE)
+topics_fear <- grep("([sS]hock|[mM]orality|[dD]ead|[dD]eath|[cC]haos|[bB]omb|[sS]cramble|[dD]rastic|[sS]ick|[iI]ll|[kK]ill|[wW]orst|[eE]xtreme)", corona$headlines, value=TRUE)
+topics_positive <- grep("([kK]ind|[sS]upport|[Cc]ompassion|[hH]elp)", corona$headlines, value=TRUE)
+
+```
+

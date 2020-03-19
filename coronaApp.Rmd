@@ -8,7 +8,17 @@ output:
 runtime: shiny 
 ---
 
-This interactive web app shows the New York Times's coverage of COVID-19. Please note that this is based off headlines only, not the content of the articles. 
+#Make this into a text box, please :) 
+This interactive web app shows the New York Times's coverage of COVID-19 for TODAY and some of the emotions these articles may elicit just from the title. Please note that this is based off headlines only, not the content of the articles. Additionally, this is not an official COVID-19 webpage. This is a class assignment for a Data Science course. We are also not representing the New York Times. The data here is publicly available data from the New York Time's website. 
+
+This app is the first step to showing how news coverage of COVID-19 may be impacting the public's mental health. It is especially important for news outlets to consider language to prevent poor mental health outcomes. It is equally important to note a major limitation to the approach of this app - the articles representing each of the three emotion categories are selected by the presence of a selected list of words. Thus, the selection process is prone to errors. For example, the word "stress" may appear in the headline, but the article could be about preventing stress; however, our algorithm is not fine-tuned enough to discriminate these contextual differences. Additionally, articles can appear in multiple emotion categories, which can be contradictory. Nevertheless, despite these limitations, these categorizations may provide insight into the effect of microsecond glances at news headlines on mental health. With the current patterns of technology use, in which, users scroll through endless articles, key words may catch their eyes, evoking some sort of emotion, as they continue to scroll past the article. These glances result in impressions of headlines without contextual insight, as our app may capture. Last, this is not a complete picture of all COVID-19-related coverage on New York Times's Today's paper. If the headlines do not contain, "pandemic", "corona", or "virus", our algorithm will not have detected them. 
+
+We were hoping to make this a longitudinal dataset, such that you, the user, can see how the proportion of COVID-19 coverage and emotion categories change over time, but this is a work in progress. Additionally, if time permitted, we would have hoped to do a more thorough, scientifically-supported process of selecting words related to the emotion categories. For example, although we differentiated fear and anxiety, often times, these may go hand in hand for the same word. It would also have been ideal to expand the number of emotion categories, but for the time being, our categories may suffice, based off precursory trends for the New York Times. 
+
+Our word selection is not at all extensive, but a good start to conducting these kind of analyses. Below you may find a list of our selected words for each emotion category:
+Anxiety: anxiety, stress
+Fear: shock, morality, dead, death, chaos, bomb, scramble, drastic, sick, ill, kill, worst, extreme, fear, fright
+Positive: kind, support, compassion, help
 
 ```{r global, include=FALSE}
 library(flexdashboard)
@@ -17,31 +27,8 @@ library(dplyr)
 library(tidyverse)
 library(stringr)
 library(DT)
-```
 
-Column {.sidebar}
------------------------------------------------------------------------
-
-### Choose the date of the New York Times's paper
-
-```{r, include = TRUE}
-selectInput("month", label = "Month",
-  choices = c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"))
-selectInput("day", label = "Day",
-  choices = c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10:13"))
-```
-
-Column {data-width=350}
------------------------------------------------------------------------
-
-### COVID-19-related Articles on This Day
-
-```{r}
-renderDataTable ({ #Ashely choose how to show this data
-
-  url <- paste("https://www.nytimes.com/issue/todayspaper/2020/", input$month, "/", input$day, "/todays-new-york-times", sep='')
-  
-  nytimes <- read_html(url)
+  nytimes <- read_html("https://www.nytimes.com/section/todayspaper")
   nyt_headlines <- nytimes %>%
     html_nodes(".css-l2vidh.e4e4i5l1") %>%
     html_text
@@ -53,9 +40,37 @@ renderDataTable ({ #Ashely choose how to show this data
   names(nyt_subheadlines)[names(nyt_subheadlines) == "nyt_subheadlines"] <- "nyt_headlines"
   headlines <- rbind(nyt_headlines, nyt_subheadlines)
   
-  corona <- grep("[cC]orona|[vV]irus|[pP]andemic|[lL]ockdown|[Oo]utbreak|[sS]hut", pattern = headlines$nyt_headlines, value=TRUE)
+  corona <- grep("[cC]orona|[vV]irus|[pP]andemic|[lL]ockdown|[Oo]utbreak|[sS]hut", headlines$nyt_headlines, value=TRUE)
   corona <- as.data.frame(corona)
   names(corona)[names(corona) == "corona"] <- "headlines"
+
+  topics_anxiety <- grep("([aA]nxiety|[sS]tress)", corona$headlines, value=TRUE)
+  topics_fear <- grep("([sS]hock|[mM]orality|[dD]ead|[dD]eath|[cC]haos|[bB]omb|[sS]cramble|[dD]rastic|[sS]ick|[iI]ll|[kK]ill|[wW]orst|[eE]xtreme|[fF]ear|[fF]right)", corona$headlines, value=TRUE)
+  topics_positive <- grep("([kK]ind|[sS]upport|[Cc]ompassion|[hH]elp)", corona$headlines, value=TRUE)
+  
+  percentCorona <- round(as.numeric(nrow(corona))/as.numeric(nrow(headlines))*100, 2)
+  percentCoronaOutput <- paste(percentCorona,"%", sep="")
+
+```
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+### Emotions conveyed in COVID-19-releated NY Times articles today
+
+```{r, include = TRUE}
+#here users can choose which of the three (anxiety, fear and positive) to see
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### COVID-19-related Articles on This Day
+
+```{r}
+renderDataTable ({ #Ashely choose how to show this data
+
+  DT::datatable(corona) #fix
   
 })
 ```
@@ -64,16 +79,13 @@ renderDataTable ({ #Ashely choose how to show this data
 
 ```{r} 
 #maybe show the percent in a gauge or value box? Just have it print out, worst case.
-percentCorona <- round(as.numeric(nrow(corona))/as.numeric(nrow(headlines))*100, 2)
-percentCoronaOutput <- paste(percentCorona,"%", sep="")
+
 ```
 
 ### Emotions Related to COVID-19 Articles
 ```{r} 
 #this can show different tables by these three categories or plots
-topics_anxiety <- grep("([aA]nxiety|[sS]tress)", corona$headlines, value=TRUE)
-topics_fear <- grep("([sS]hock|[mM]orality|[dD]ead|[dD]eath|[cC]haos|[bB]omb|[sS]cramble|[dD]rastic|[sS]ick|[iI]ll|[kK]ill|[wW]orst|[eE]xtreme)", corona$headlines, value=TRUE)
-topics_positive <- grep("([kK]ind|[sS]upport|[Cc]ompassion|[hH]elp)", corona$headlines, value=TRUE)
+
 
 ```
 
